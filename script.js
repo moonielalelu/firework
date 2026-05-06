@@ -33,32 +33,163 @@ resize();
 window.addEventListener("resize", resize);
 
 
-// =========================
-// SOUND
-// =========================
+// ========================================
+// AUDIO SYSTEM
+// ========================================
 
-const launchSound = new Audio("firework-launch.mp3");
-const burstSound = new Audio("firework-burst.mp3");
-const crackleSound = new Audio("firework-crackle.mp3");
+const audioCtx = new (
+  window.AudioContext ||
+  window.webkitAudioContext
+)();
 
-launchSound.volume = 0.12;
-burstSound.volume = 0.20;
-crackleSound.volume = 0.08;
-
-
-// unlock autoplay
 addEventListener("pointerdown",()=>{
 
-  launchSound.play().catch(()=>{});
-  burstSound.play().catch(()=>{});
-  crackleSound.play().catch(()=>{});
+  audioCtx.resume();
 
 },{once:true});
 
 
-// =========================
-// SYSTEM
-// =========================
+
+function playLaunchSound(){
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+
+  osc.frequency.setValueAtTime(
+    220,
+    audioCtx.currentTime
+  );
+
+  osc.frequency.exponentialRampToValueAtTime(
+    880,
+    audioCtx.currentTime + 0.25
+  );
+
+  gain.gain.setValueAtTime(
+    0.001,
+    audioCtx.currentTime
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.04,
+    audioCtx.currentTime + 0.03
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioCtx.currentTime + 0.28
+  );
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.3);
+}
+
+
+
+function playExplosionSound(){
+
+  const bufferSize =
+    audioCtx.sampleRate * 0.6;
+
+  const buffer = audioCtx.createBuffer(
+    1,
+    bufferSize,
+    audioCtx.sampleRate
+  );
+
+  const data = buffer.getChannelData(0);
+
+  for(let i=0;i<bufferSize;i++){
+
+    data[i] =
+      (Math.random()*2-1) *
+      Math.pow(1 - i/bufferSize, 2.5);
+  }
+
+  const noise =
+    audioCtx.createBufferSource();
+
+  noise.buffer = buffer;
+
+  const lowpass =
+    audioCtx.createBiquadFilter();
+
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = 900;
+
+  const gain =
+    audioCtx.createGain();
+
+  gain.gain.setValueAtTime(
+    0.25,
+    audioCtx.currentTime
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioCtx.currentTime + 0.6
+  );
+
+  noise.connect(lowpass);
+  lowpass.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  noise.start();
+}
+
+
+
+function playCrackleSound(){
+
+  for(let i=0;i<18;i++){
+
+    const osc =
+      audioCtx.createOscillator();
+
+    const gain =
+      audioCtx.createGain();
+
+    osc.type = "triangle";
+
+    osc.frequency.value =
+      1200 + Math.random()*2500;
+
+    const t =
+      audioCtx.currentTime + i*0.012;
+
+    gain.gain.setValueAtTime(
+      0.0001,
+      t
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.015,
+      t + 0.002
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      t + 0.03
+    );
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+}
+
+
+
+// ========================================
+// PARTICLES
+// ========================================
 
 let rockets = [];
 let particles = [];
@@ -104,15 +235,24 @@ class Particle {
 
   draw(){
 
-    const a = this.life / this.maxLife;
+    const a =
+      this.life / this.maxLife;
 
     ctx.beginPath();
-    ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+
+    ctx.arc(
+      this.x,
+      this.y,
+      this.size,
+      0,
+      Math.PI*2
+    );
 
     ctx.fillStyle =
       `hsla(${this.hue},100%,70%,${a})`;
 
     ctx.shadowBlur = this.glow;
+
     ctx.shadowColor =
       `hsla(${this.hue},100%,70%,1)`;
 
@@ -123,12 +263,18 @@ class Particle {
 }
 
 
+
+// ========================================
+// ROCKET
+// ========================================
+
 class Rocket {
 
   constructor(){
 
     this.x =
-      Math.random() * canvas.width;
+      Math.random() *
+      canvas.width;
 
     this.y =
       canvas.height + 20;
@@ -137,7 +283,7 @@ class Rocket {
       canvas.height *
       (0.15 + Math.random()*0.35);
 
-    // elegant gold range
+    // elegant gold tones
     this.hue =
       35 + Math.random()*25;
 
@@ -146,13 +292,7 @@ class Rocket {
 
     this.trail = [];
 
-    // sound
-    const s = launchSound.cloneNode();
-
-    s.volume =
-      0.08 + Math.random()*0.05;
-
-    s.play();
+    playLaunchSound();
   }
 
   update(){
@@ -171,14 +311,15 @@ class Rocket {
     // trail
     this.trail.forEach((t,i)=>{
 
-      const a = i / this.trail.length;
+      const a =
+        i / this.trail.length;
 
       ctx.beginPath();
 
       ctx.arc(
         t.x,
         t.y,
-        1.5 * a,
+        1.5*a,
         0,
         Math.PI*2
       );
@@ -213,9 +354,10 @@ class Rocket {
 }
 
 
-// =========================
+
+// ========================================
 // EXPLOSION
-// =========================
+// ========================================
 
 function explodeElegant(x,y,hue){
 
@@ -296,34 +438,24 @@ function explodeElegant(x,y,hue){
     );
   }
 
+  playExplosionSound();
 
-  // burst sound
-  const b = burstSound.cloneNode();
-  b.play();
-
-
-  // delayed crackle
   setTimeout(()=>{
 
-    const c =
-      crackleSound.cloneNode();
-
-    c.volume = 0.06;
-
-    c.play();
+    playCrackleSound();
 
   },120);
 }
 
 
 
-// =========================
-// ANIMATION
-// =========================
+// ========================================
+// MAIN LOOP
+// ========================================
 
 function animate(){
 
-  // smooth cinematic fade
+  // cinematic fade
   ctx.fillStyle =
     "rgba(0,0,0,0.12)";
 
@@ -350,7 +482,7 @@ function animate(){
   }
 
 
-  // launch rockets
+  // launch chance
   if(Math.random() < 0.08){
 
     rockets.push(
@@ -359,7 +491,7 @@ function animate(){
   }
 
 
-  // update rockets
+  // rockets
   rockets = rockets.filter(r=>{
 
     r.update();
@@ -379,7 +511,7 @@ function animate(){
   });
 
 
-  // update particles
+  // particles
   particles = particles.filter(p=>{
 
     p.update();
