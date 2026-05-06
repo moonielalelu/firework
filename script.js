@@ -1,27 +1,3 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Elegant Fireworks</title>
-
-<style>
-html,body{
-  margin:0;
-  overflow:hidden;
-  background:#000;
-}
-
-canvas{
-  display:block;
-}
-</style>
-</head>
-<body>
-
-<canvas id="c"></canvas>
-
-<script>
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 
@@ -30,7 +6,11 @@ function resize(){
   canvas.height = window.innerHeight;
 }
 resize();
-window.addEventListener("resize", resize);
+
+window.addEventListener(
+  "resize",
+  resize
+);
 
 
 // ========================================
@@ -52,8 +32,11 @@ addEventListener("pointerdown",()=>{
 
 function playLaunchSound(){
 
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
+  const osc =
+    audioCtx.createOscillator();
+
+  const gain =
+    audioCtx.createGain();
 
   osc.type = "sine";
 
@@ -86,7 +69,9 @@ function playLaunchSound(){
   gain.connect(audioCtx.destination);
 
   osc.start();
-  osc.stop(audioCtx.currentTime + 0.3);
+  osc.stop(
+    audioCtx.currentTime + 0.3
+  );
 }
 
 
@@ -96,19 +81,24 @@ function playExplosionSound(){
   const bufferSize =
     audioCtx.sampleRate * 0.6;
 
-  const buffer = audioCtx.createBuffer(
-    1,
-    bufferSize,
-    audioCtx.sampleRate
-  );
+  const buffer =
+    audioCtx.createBuffer(
+      1,
+      bufferSize,
+      audioCtx.sampleRate
+    );
 
-  const data = buffer.getChannelData(0);
+  const data =
+    buffer.getChannelData(0);
 
   for(let i=0;i<bufferSize;i++){
 
     data[i] =
       (Math.random()*2-1) *
-      Math.pow(1 - i/bufferSize, 2.5);
+      Math.pow(
+        1 - i/bufferSize,
+        2.5
+      );
   }
 
   const noise =
@@ -251,7 +241,8 @@ class Particle {
     ctx.fillStyle =
       `hsla(${this.hue},100%,70%,${a})`;
 
-    ctx.shadowBlur = this.glow;
+    ctx.shadowBlur =
+      this.glow;
 
     ctx.shadowColor =
       `hsla(${this.hue},100%,70%,1)`;
@@ -342,10 +333,12 @@ class Rocket {
       Math.PI*2
     );
 
-    ctx.fillStyle = "#fff4d6";
+    ctx.fillStyle =
+      "#fff4d6";
 
     ctx.shadowBlur = 25;
-    ctx.shadowColor = "#ffd37a";
+    ctx.shadowColor =
+      "#ffd37a";
 
     ctx.fill();
 
@@ -482,7 +475,7 @@ function animate(){
   }
 
 
-  // launch chance
+  // launch rockets
   if(Math.random() < 0.08){
 
     rockets.push(
@@ -527,7 +520,3 @@ function animate(){
 }
 
 animate();
-
-</script>
-</body>
-</html>
